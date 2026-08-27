@@ -135,8 +135,8 @@ IRVE-MongoDB/
 │   ├── import_data.py
 │   ├── create_indexes.py
 │   ├── benchmark_indexes.py
-│   ├── backup.ps1
-│   └── restore.ps1
+│   ├── backup.py
+│   └── restore.py
 ├── src/
 │   ├── config.py
 │   ├── database.py
