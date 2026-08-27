@@ -1,0 +1,141 @@
+On a choisi la Base Nationale IRVE, disponible sur data.gouv.fr. Après exploration, le fichier statique contient 165 595 lignes, 165 593 points de recharge distincts et 48 040 stations. On dispose également de données géographiques, des puissances, des types de prises, des opérateurs et d’un fichier dynamique sur l’état des points de recharge.
+
+Notre objectif est de construire une base MongoDB Atlas permettant notamment de rechercher les stations proches d’une position grâce à un index géospatial 2dsphere, par exemple pour trouver des stations proposant de la recharge rapide à moins de 2 km.
+
+Pour la modélisation, on a d’abord étudié la cardinalité entre les stations et les PDC, c’est-à-dire les points de recharge. Une station possède en moyenne 3,45 PDC, avec une médiane de 2. 95 % des stations ont 10 PDC ou moins, et 99 % en ont 20 ou moins.
+
+On a donc retenu l’embarquement des points de recharge dans un tableau points_recharge au sein du document station.
+
+L’avantage est qu’une station et ses points de recharge peuvent être récupérés ensemble. Le coût de ce choix est que, pour certaines analyses effectuées au niveau du PDC, on devra utiliser $unwind, ce qui augmente le nombre de documents intermédiaires dans le pipeline.
+
+Il existe également quelques cas atypiques : le maximum observé est de 505 PDC dans une seule station. Notre choix reste donc adapté à la grande majorité des stations, mais il a cette limite. Si les tableaux devenaient beaucoup plus gros ou si la majorité de nos requêtes travaillaient directement au niveau du PDC, une collection points_recharge séparée pourrait devenir plus adaptée.
+
+Pour les données dynamiques, on préfère utiliser une collection statuts_pdc séparée. Le fichier dynamique contient 115 159 lignes pour 104 046 PDC uniques, et environ 60,9 % des PDC statiques disposent d’un statut dynamique.
+
+On sépare donc les données statiques et dynamiques parce qu’elles n’ont pas le même cycle de vie : les caractéristiques d’une station ou d’un PDC sont relativement stables, alors que son état de fonctionnement ou d’occupation peut évoluer indépendamment.
+
+Le coût de cette séparation est que certaines requêtes qui combinent les caractéristiques statiques d’un PDC avec son état dynamique pourront nécessiter un $lookup ou plusieurs lectures.
+
+Pour la partie géographique, on devra également nettoyer les coordonnées avant de construire les objets GeoJSON et l’index 2dsphere. Le profiling montre que 84,1 % des coordonnées sont explicitement validées par la source, tandis qu’environ 15,9 % sont signalées comme étant à contrôler.
+
+Pour l’analyse, on prévoit trois agrégations principales :
+
+comparer l’offre de recharge selon les départements ;
+comparer les opérateurs ;
+observer l’évolution du réseau dans le temps.
+
+Pour la première agrégation, comme les PDC sont embarqués dans le tableau points_recharge, on commence par $unwind afin de traiter chaque PDC individuellement.
+
+Ensuite, $group rassemble les PDC par département, $sum permet de compter le nombre de points de recharge et $avg permet de calculer leur puissance moyenne. Enfin, $sort classe les départements selon leur nombre de PDC.
+
+Le but est de comparer l’offre de recharge entre les différents territoires.
+
+Le champ département sera calculé ou enrichi pendant la préparation des données à partir des informations géographiques disponibles dans le dataset.
+
+Une deuxième agrégation suivra le même principe pour comparer les opérateurs. On pourra calculer le nombre de PDC de chaque opérateur ainsi que leur puissance moyenne, puis retenir par exemple les dix opérateurs ayant le plus de PDC afin d’obtenir une visualisation lisible.
+
+La troisième agrégation regroupera les stations selon leur année de mise en service afin d’observer l’évolution du déploiement du réseau au fil du temps et d’identifier d’éventuelles périodes d’accélération ou de ralentissement.
+
+À côté de ces agrégations, l’index 2dsphere aura un autre rôle : il servira spécifiquement aux recherches de proximité, par exemple pour trouver les stations situées à moins de 2 km d’une position.
+
+On a volontairement choisi des pipelines relativement simples qui répondent à de vraies questions métier et dont on maîtrise chaque étape, plutôt qu’un pipeline complexe qu’on ne saurait pas défendre correctement.
+
+
+Exemple aggrégation 1 :
+db.stations.aggregate([
+  { $unwind: "$points_recharge" },
+  {
+    $group: {
+      _id: "$departement",
+      nb_points: { $sum: 1 },
+      puissance_moyenne: {
+        $avg: "$points_recharge.puissance_kw"
+      }
+    }
+  },
+  { $sort: { nb_points: -1 } }
+])
+
+Explication :
+
+points_recharge est un tableau et avec unwind dans un premier temps on va dérouler ce tableau pour récupérer les PDC individuellement, ensuite avec group on va les regrouper par département, compter les PDC avec sum, calculer leur puissance moyenne avec avg et pour finir classer les départements avec sort.
+
+ça donnerait ça :
+
+$unwind → individualiser les PDC
+$group  → regrouper par département
+$sum    → compter les PDC
+$avg    → calculer leur puissance moyenne
+$sort   → classer les départements
+
+Le coût de $unwind est qu’il augmente le nombre de documents intermédiaires traités mais on le fait car avant $unwind, les PDC sont encore contenus dans un tableau à l’intérieur de chaque station. Pour faire une analyse PDC par PDC, on doit d’abord individualiser les éléments du tableau.
+
+Exemple aggrégation 2 :
+
+db.stations.aggregate([
+  { $unwind: "$points_recharge" },
+  {
+    $group: {
+      _id: "$operateur",
+      nb_points: { $sum: 1 },
+      puissance_moyenne: {
+        $avg: "$points_recharge.puissance_kw"
+      }
+    }
+  },
+  { $sort: { nb_points: -1 } },
+  { $limit: 10 } -> conserve que les 10 opérateurs les ayant le plus de PDC
+])
+
+C'est similaire mais ici on cherche à faire une comparaison des opérateurs ayant le plus de PDC, plutôt que par département.
+
+Et exemple aggrégation 3 :
+db.stations.aggregate([
+  {
+    $match: {
+      date_mise_en_service: { $type: "date" }
+    }
+  },
+  {
+    $group: {
+      _id: {
+        $year: "$date_mise_en_service"
+      },
+      nb_stations: { $sum: 1 }
+    }
+  },
+  { $sort: { _id: 1 } }
+])
+
+Celle ci permet de voir le nombre de stations mises en service chaque année et d’identifier d’éventuelles périodes d’accélération ou de ralentissement du déploiement. Ici pas besoin de unwind car on compte des stations, pas des PDC. Chaque document représente déjà une station, donc on a besoin de unwind uniquement lorsque on veut travailler individuellement sur les éléments du tableau points_recharge.
+
+Et pour finir on pourrait avoir un index géospatial 2dsphere pour effectuer des recherches de proximité, par exemple :
+Quelles stations sont situées à moins de 2 km de ma position ?
+
+On prévoit de stocker la position d’une station sous forme GeoJSON :
+{
+  localisation: {
+    type: "Point",
+    coordinates: [2.3522, 48.8566] -> [longitude, latitude]
+  }
+}
+
+Résultat, on créé un index 2dsphere sur le champ localisation de la collection stations :
+db.stations.createIndex({
+  localisation: "2dsphere"
+})
+
+Et une fois l’index 2dsphere créé, on pourra utiliser $near pour rechercher les stations les plus proches d’une position et limiter la recherche à un rayon donné avec $maxDistance.
+
+Exemple :
+db.stations.find({
+  localisation: {
+    $near: {
+      $geometry: {
+        type: "Point",
+        coordinates: [2.3522, 48.8566]
+      },
+      $maxDistance: 2000 -> max 2km par exemple
+    }
+  }
+})
