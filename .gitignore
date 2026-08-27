@@ -1,0 +1,33 @@
+# Environnement & Secrets
+.env
+.env.local
+*.env
+
+# Python & Virtualenv
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+
+# Data volumineuse (à télécharger via data.gouv.fr)
+data/*.csv
+data/*.zip
+data/*.jsonl
+data/*.gz
+
+# Jupyter Checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Autre
+AGENTS.md
+ROADMAP.md

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projet final - Conception et intégration d'une base NoSQL - NEEKOCODE x IPSSI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1220; --surface:#0F1740; --surface-2:#141C4A;
+    --gold:#D4AF37; --gold-dim:rgba(212,175,55,.16);
+    --text:#E6E8EF; --muted:#9AA3BF;
+    --ok:#4ADE80; --warn:#FBBF24; --err:#F87171; --info:#7DD3FC;
+    --line:rgba(230,232,239,.12);
+    --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;font-size:16px;line-height:1.65;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:0 24px 96px}
+
+  header{border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(15,23,64,.9),rgba(11,18,32,0));
+    padding:46px 0 38px;margin-bottom:34px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--gold);margin:0 0 14px}
+  h1{font-family:'Montserrat',sans-serif;font-weight:800;
+    font-size:clamp(27px,5vw,40px);line-height:1.14;margin:0 0 16px;letter-spacing:-.02em}
+  .lede{color:var(--muted);font-size:17px;max-width:66ch;margin:0}
+
+  .toc{background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    padding:22px 26px;margin:0 0 46px}
+  .toc p{font-family:'Montserrat',sans-serif;font-weight:600;font-size:13px;
+    text-transform:uppercase;letter-spacing:.09em;color:var(--gold);margin:0 0 14px}
+  .toc ol{margin:0;padding-left:20px;columns:2;column-gap:36px}
+  .toc li{margin-bottom:8px;break-inside:avoid}
+  .toc a{color:var(--text);text-decoration:none;border-bottom:1px solid transparent}
+  .toc a:hover{border-bottom-color:var(--gold);color:var(--gold)}
+
+  section{margin:0 0 54px;scroll-margin-top:20px}
+  h2{font-family:'Montserrat',sans-serif;font-weight:700;font-size:24px;
+    margin:0 0 10px;letter-spacing:-.01em;display:flex;align-items:baseline;gap:14px}
+  h2 .num{font-family:var(--mono);font-size:13px;color:var(--gold);font-weight:500;
+    border:1px solid rgba(212,175,55,.4);border-radius:4px;padding:2px 8px;flex:none}
+  h3{font-family:'Montserrat',sans-serif;font-weight:600;font-size:17.5px;margin:28px 0 10px}
+  .sub{color:var(--muted);margin:0 0 22px;max-width:68ch}
+  p{margin:0 0 14px}
+
+  .anchor{border:1px solid rgba(212,175,55,.5);background:var(--gold-dim);
+    border-radius:10px;padding:24px 28px;margin:8px 0 26px}
+  .anchor .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--gold);margin:0 0 10px}
+  .anchor .claim{font-family:'Montserrat',sans-serif;font-weight:700;
+    font-size:clamp(18px,2.8vw,23px);line-height:1.35;margin:0 0 14px}
+  .anchor p:last-child{margin-bottom:0;color:var(--text)}
+
+  pre{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--gold);
+    border-radius:6px;padding:15px 18px;overflow-x:auto;margin:12px 0 18px}
+  code{font-family:var(--mono);font-size:13.5px;line-height:1.7}
+  p code,li code,td code{background:var(--surface-2);padding:2px 6px;border-radius:4px;
+    font-size:13px;color:var(--gold)}
+  pre code{color:var(--text);background:none;padding:0}
+  .cmt{color:var(--muted)}
+
+  table{width:100%;border-collapse:collapse;margin:16px 0 22px;font-size:14.5px}
+  th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:'Montserrat',sans-serif;font-weight:600;font-size:12.5px;color:var(--gold);
+    text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid rgba(212,175,55,.35)}
+  tbody tr:hover{background:rgba(15,23,64,.55)}
+  td.pts{text-align:center;font-family:'Montserrat',sans-serif;font-weight:700;
+    color:var(--gold);font-size:17px;white-space:nowrap}
+  tr.total td{border-top:2px solid rgba(212,175,55,.5);font-weight:700;background:rgba(212,175,55,.06)}
+
+  .box{border-radius:8px;padding:15px 20px;margin:18px 0;
+    border:1px solid var(--line);background:var(--surface)}
+  .box p:last-child{margin-bottom:0}
+  .box .label{font-family:'Montserrat',sans-serif;font-weight:700;font-size:12px;
+    text-transform:uppercase;letter-spacing:.1em;margin:0 0 8px;display:block}
+  .box.warn{border-color:rgba(251,191,36,.45);background:rgba(251,191,36,.07)}
+  .box.warn .label{color:var(--warn)}
+  .box.stop{border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.07)}
+  .box.stop .label{color:var(--err)}
+  .box.note{border-color:rgba(212,175,55,.4);background:rgba(212,175,55,.06)}
+  .box.note .label{color:var(--gold)}
+  .box.ok{border-color:rgba(74,222,128,.4);background:rgba(74,222,128,.06)}
+  .box.ok .label{color:var(--ok)}
+
+  ul.plain{padding-left:20px;margin:0 0 16px}
+  ul.plain li{margin-bottom:8px}
+
+  /* jalons */
+  .jalon{display:grid;grid-template-columns:120px 1fr;gap:0;
+    border-left:2px solid rgba(212,175,55,.35);padding-left:0;margin:0}
+  .jalon .quand{font-family:var(--mono);font-size:13px;color:var(--gold);
+    padding:14px 18px 14px 22px;position:relative}
+  .jalon .quand::before{content:"";position:absolute;left:-6px;top:20px;
+    width:10px;height:10px;border-radius:50%;background:var(--gold)}
+  .jalon .quoi{padding:14px 0 14px 8px;border-bottom:1px solid var(--line)}
+  .jalon .quoi > b{display:block;font-family:'Montserrat',sans-serif;font-weight:600;margin-bottom:3px}
+  .jalon .quoi span b{font-weight:600;color:var(--gold)}
+  .jalon .quoi span{color:var(--muted);font-size:14.5px}
+  .jalon > :nth-last-child(-n+1){border-bottom:none}
+
+  /* livrables */
+  .liv{border:1px solid var(--line);background:var(--surface);border-radius:8px;
+    padding:18px 22px;margin-bottom:12px;border-left:3px solid var(--gold)}
+  .liv .t{font-family:'Montserrat',sans-serif;font-weight:600;font-size:16.5px;margin:0 0 6px}
+  .liv .d{font-size:14.5px;color:var(--muted);line-height:1.55;margin:0}
+  .liv .d b{color:var(--text)}
+
+  footer{border-top:1px solid var(--line);margin-top:56px;padding-top:26px;
+    color:var(--muted);font-size:14px}
+  .sig{font-family:'Montserrat',sans-serif;font-weight:700;color:var(--gold);letter-spacing:.04em}
+
+  @media (max-width:680px){
+    .wrap{padding:0 18px 72px}
+    .toc ol{columns:1}
+    .jalon{grid-template-columns:92px 1fr}
+    th,td{padding:9px 7px;font-size:13.5px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="eyebrow">NEEKOCODE x IPSSI &nbsp;/&nbsp; MIA4 27.2 &nbsp;/&nbsp; Projet final</p>
+    <h1>Concevoir, justifier,<br>défendre</h1>
+    <p class="lede">Quatre personnes, un jeu de données réel, une base MongoDB en production sur Atlas. Et vendredi, une vidéo où vous défendez chacune de vos décisions. Le code qui tourne ne vaut que la moitié des points : l'autre moitié, c'est votre capacité à dire pourquoi vous avez fait ces choix-là et ce qu'ils vous ont coûté.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <p>Sommaire</p>
+  <ol>
+    <li><a href="#contrat">Ce que j'attends de vous</a></li>
+    <li><a href="#calendrier">Le calendrier et les gels</a></li>
+    <li><a href="#dataset">Choisir votre jeu de données</a></li>
+    <li><a href="#livrables">Les sept livrables</a></li>
+    <li><a href="#bonus">Les trois bonus</a></li>
+    <li><a href="#bareme">Le barème, point par point</a></li>
+    <li><a href="#video">La vidéo de soutenance</a></li>
+    <li><a href="#interdits">Ce qui vous coûte des points</a></li>
+  </ol>
+</nav>
+
+<!-- ============ 1 ============ -->
+<section id="contrat">
+  <h2><span class="num">01</span>Ce que j'attends de vous</h2>
+
+  <div class="anchor">
+    <p class="kicker">Le contrat</p>
+    <p class="claim">Un projet dont le code fonctionne mais dont personne ne sait justifier les choix ne dépassera pas la moyenne.</p>
+    <p>Depuis lundi, chaque décision que vous prenez a un prix, et savoir le nommer est ce qui distingue un architecte d'un exécutant. Ce projet est l'endroit où vous le démontrez. Sur vingt points, huit portent directement sur votre capacité à défendre, pas à produire.</p>
+  </div>
+
+  <h3>En une phrase</h3>
+  <p>Vous concevez et mettez en ligne, sur MongoDB Atlas, une base de données à partir d'un jeu de données réel que vous aurez choisi. Vous la modélisez en justifiant, vous l'indexez en mesurant, vous en tirez une analyse par agrégations, et vous livrez le tout dans un dépôt propre avec une vidéo de soutenance.</p>
+
+  <h3>Composition des groupes</h3>
+  <p>Vous êtes 31, ce qui donne <strong>sept groupes de quatre et un groupe de trois</strong>. Chacun est responsable d'une partie identifiable du projet, et chacun la présente dans la vidéo. Un groupe où une seule personne a tout fait, je le repère en trois questions le jeudi.</p>
+  <p>Le groupe de trois n'est pas désavantagé : le barème est le même, et j'en tiens compte sur le volume attendu, pas sur les exigences.</p>
+
+  <div class="box note">
+    <span class="label">Une alternative recevable</span>
+    <p>Un groupe qui souhaite construire sur <strong>Neo4j</strong> plutôt que MongoDB peut le faire, à une condition : venir jeudi matin avec la grille de décision remplie et démontrer que son cas relève réellement d'un graphe. La traversée de relations de longueur variable doit être la requête dominante, pas un prétexte. Si l'argument tient, c'est accepté et valorisé.</p>
+  </div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="calendrier">
+  <h2><span class="num">02</span>Le calendrier et les gels</h2>
+  <p class="sub">Deux échéances sont fermes et ne se négocient pas. Elles sont marquées en rouge.</p>
+
+  <div class="jalon">
+    <div class="quand">Mardi 17h15</div>
+    <div class="quoi"><b>Groupes constitués</b><span>Vous savez avec qui vous travaillez. Commencez à chercher votre jeu de données ce soir : c'est deux jours de travail gagnés.</span></div>
+
+    <div class="quand">Mercredi</div>
+    <div class="quoi"><b>Agrégation</b><span>Vous apprenez ce qui alimentera votre rapport analytique. Venez avec votre jeu de données en tête, les exemples de la journée y gagneront.</span></div>
+
+    <div class="quand">Jeudi 11h00</div>
+    <div class="quoi"><b>Validation du sujet</b><span>Passage rapide des huit groupes, dans l'ordre du tirage. Vous présentez votre jeu de données et votre intention. Sans validation, vous ne partez pas.</span></div>
+
+    <div class="quand">Jeudi 14h00</div>
+    <div class="quoi"><b>Travail en autonomie</b><span>Je circule dans les groupes.</span></div>
+
+    <div class="quand">Jeudi après-midi</div>
+    <div class="quoi"><b>Mini-défense notée, 5 à 7 minutes par groupe</b><span>Elle se fait <b>à l'oral</b>, devant moi. Vous défendez votre schéma, et vous expliquez une agrégation à la volée. Votre fiche de modélisation, déjà déposée, me sert de support : je pointe une ligne, vous la justifiez. Cette défense compte dans la note de compréhension architecturale.</span></div>
+
+    <div class="quand">Juste après</div>
+    <div class="quoi"><b>Tirage au sort de votre question de défense</b><span>Chaque groupe tire une question au hasard, à la fin de sa mini-défense. C'est celle que votre vidéo devra traiter explicitement. Vous la connaissez donc dès jeudi après-midi, ce qui vous laisse le temps d'y répondre sérieusement.</span></div>
+
+    <div class="quand">Vendredi 9h00</div>
+    <div class="quoi"><b>Finalisation</b><span>Code et support de présentation.</span></div>
+
+    <div class="quand" style="color:var(--err)">Vendredi 15h00</div>
+    <div class="quoi"><b style="color:var(--err)">Gel du code et des livrables</b><span>Dépôt Teams : le lien vers votre dépôt GitHub, ou l'archive du code, plus le support de présentation. Rien n'est accepté après 15h00.</span></div>
+
+    <div class="quand" style="color:var(--err)">Vendredi 16h45</div>
+    <div class="quoi"><b style="color:var(--err)">Gel des vidéos</b><span>Déposez tôt. Huit groupes qui téléversent des fichiers vidéo en même temps à 16h40, c'est un incident garanti.</span></div>
+  </div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="dataset">
+  <h2><span class="num">03</span>Choisir votre jeu de données</h2>
+  <p class="sub">C'est la décision la plus déterminante de votre semaine, et elle se prend ce soir. Un bon jeu de données rend le projet évident. Un mauvais vous fera ramer trois jours.</p>
+
+  <h3>Les cinq critères d'un bon choix</h3>
+
+  <table>
+    <thead><tr><th style="width:32%">Critère</th><th>Pourquoi il compte</th></tr></thead>
+    <tbody>
+      <tr><td><b>Au moins 10 000 documents</b></td><td>En dessous, vos index n'auront aucun effet mesurable et vous n'aurez rien à démontrer sur la performance</td></tr>
+      <tr><td><b>Des données imbriquées ou des tableaux</b></td><td>Si vos données sont un tableau plat parfaitement régulier, la première question que je vous poserai est pourquoi vous n'avez pas pris PostgreSQL</td></tr>
+      <tr><td><b>Au moins deux entités reliées</b></td><td>Sans relation, vous n'avez aucune décision à prendre entre embarquer et référencer, donc rien à défendre</td></tr>
+      <tr><td><b>Une dimension temporelle ou géographique</b></td><td>Elle vous ouvre les agrégations par période et les index géospatiaux. Ce n'est pas obligatoire, mais ça enrichit beaucoup</td></tr>
+      <tr><td><b>Aucune donnée personnelle réelle</b></td><td>Pas de fichier client, pas de données de santé, pas de scraping de profils</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Où chercher</h3>
+
+  <ul class="plain">
+    <li><strong>data.gouv.fr</strong> et les portails open data des collectivités. Beaucoup de jeux avec une dimension géographique.</li>
+    <li><strong>Kaggle</strong>, section Datasets. Attention à la licence et à la fraîcheur.</li>
+    <li><strong>Open Food Facts</strong>, qui publie des exports complets. Données imbriquées, gros volume, plusieurs langues.</li>
+    <li><strong>Les API publiques</strong> que vous pouvez moissonner : transports, météo, culture, sport. Vous avez fait du scraping en M203, servez-vous-en.</li>
+    <li><strong>Les jeux de la semaine</strong>, en dernier recours : le catalogue mflix ou les restaurants de New York. C'est accepté, mais vous partez avec un handicap : je les connais par cœur et je comparerai vos décisions à celles vues en cours.</li>
+  </ul>
+
+  <div class="box warn">
+    <span class="label">Le piège du jeu de données trop propre</span>
+    <p>Un fichier déjà parfaitement structuré ne vous laisse aucune décision à prendre. Ce que vous cherchez, c'est un jeu qui pose un vrai problème de modélisation : des entités liées dont vous devrez décider du sort, un tableau dont vous ne connaissez pas la borne, des champs absents par endroits. Les données sales sont une bonne nouvelle, elles vous donnent quelque chose à raconter.</p>
+  </div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="livrables">
+  <h2><span class="num">04</span>Les sept livrables</h2>
+  <p class="sub">Tous obligatoires. Un livrable manquant vous coûte les points de sa rubrique, et je ne rattrape pas.</p>
+
+  <div class="liv">
+    <p class="t">1. Une base déployée sur Atlas</p>
+    <p class="d">Le jeu de données chargé, sur un cluster Atlas accessible. <b>Pas en local.</b> Je dois pouvoir m'y connecter le vendredi.</p>
+  </div>
+
+  <div class="liv">
+    <p class="t">2. Une modélisation justifiée</p>
+    <p class="d">Un schéma documenté dans le README, avec <b>la fiche de modélisation remplie</b> : pour chaque relation, la cardinalité, la décision, la question qui a tranché, et ce que ça coûte. C'est le livrable que je regarde le plus.</p>
+  </div>
+
+  <div class="liv">
+    <p class="t">3. Un CRUD en Python</p>
+    <p class="d">Les quatre opérations, avec une gestion d'erreurs réelle. Connexion propre depuis un fichier d'environnement, jamais d'identifiants dans le code.</p>
+  </div>
+
+  <div class="liv">
+    <p class="t">4. Des index justifiés et mesurés</p>
+    <p class="d">Au moins trois index, chacun accompagné de sa mesure <code>explain</code> <b>avant et après</b>. Un index sans sa mesure, je ne le compte pas. Précisez pour chacun quelle requête il sert.</p>
+  </div>
+
+  <div class="liv">
+    <p class="t">5. Un rapport analytique par agrégations</p>
+    <p class="d">Au moins trois agrégations qui répondent à de vraies questions métier, avec une visualisation. Ce que vous montrez doit intéresser quelqu'un qui ne connaît pas vos données. Moi compris.</p>
+    <p class="d" style="margin-top:10px"><b>Le format est libre</b>, et c'est un point sur lequel un d'entre vous m'a fait une remarque juste. Un notebook n'est pas « non professionnel » : c'est l'outil approprié pour explorer et restituer une analyse. Ce qu'il n'est pas, c'est un format pour du code réutilisable, parce qu'il n'a ni tests, ni imports propres, et qu'il dépend de l'ordre d'exécution. <b>La règle utile est donc : notebook pour l'analyse, modules Python pour ce qui est réutilisé.</b> Un projet entièrement structuré en modules est accepté et rapporte un point de bonus.</p>
+  </div>
+
+  <div class="liv">
+    <p class="t">6. Des scripts d'administration</p>
+    <p class="d">Sauvegarde et restauration fonctionnelles, avec <code>mongodump</code> et <code>mongorestore</code>. Documentées dans le README, et démontrées dans la vidéo.</p>
+  </div>
+
+  <div class="liv">
+    <p class="t">7. Un dépôt propre avec son README</p>
+    <p class="d">Le README doit permettre à quelqu'un d'autre de faire tourner votre projet : prérequis, installation, chargement des données, lancement. Plus le schéma et la fiche de modélisation. <b>Aucun identifiant en clair nulle part.</b></p>
+    <p class="d" style="margin-top:10px"><b>Sur GitHub de préférence.</b> Ce n'est pas obligatoire, mais c'est fortement encouragé : dans ce cas, vous ne déposez sur Teams qu'un lien vers le dépôt, et j'y accède directement. C'est aussi ce qui se passera dans votre vie professionnelle. Si vous préférez déposer une archive sur Teams, c'est accepté sans perte de points.</p>
+  </div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="bonus">
+  <h2><span class="num">05</span>Les trois bonus</h2>
+  <p class="sub">Quatre points au total, répartis sur trois portes d'entrée indépendantes. Aucun n'est obligatoire, et aucun ne compense un socle bâclé : je ne les attribue que si le reste tient debout.</p>
+
+  <table>
+    <thead><tr><th style="width:32%">Bonus</th><th style="width:10%">Pts</th><th>Ce qu'il faut faire</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>Recherche vectorielle</b></td><td class="pts">2</td>
+        <td>Un composant de recherche sémantique sur vos propres données, avec Atlas Vector Search. On le construit ensemble jeudi matin, vous aurez tout pour le reproduire</td>
+      </tr>
+      <tr>
+        <td><b>Interface d'interrogation</b></td><td class="pts">1</td>
+        <td>Une interface qui permet d'interroger votre application sans passer par un terminal. Streamlit, Gradio, une page React, une API exposée avec FastAPI : le choix vous appartient, seul compte le fait qu'un utilisateur puisse s'en servir</td>
+      </tr>
+      <tr>
+        <td><b>Projet structuré</b></td><td class="pts">1</td>
+        <td>Du code organisé en modules Python, avec des dossiers, des fonctions réutilisables et des imports propres, plutôt qu'un notebook unique. Le notebook garde sa place pour l'analyse</td>
+      </tr>
+      <tr class="total"><td>Total des bonus</td><td class="pts">+4</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <div class="box ok">
+    <span class="label">Pourquoi trois bonus plutôt qu'un</span>
+    <p>Parce qu'ils ne visent pas les mêmes groupes. La recherche vectorielle demande d'être allé au bout de jeudi matin. L'interface demande des compétences que certains d'entre vous ont déjà par ailleurs. La structuration ne demande que de la rigueur. <strong>Chacun peut en viser au moins un</strong>, et un groupe qui les prend tous les trois a fait un vrai travail d'ingénierie.</p>
+  </div>
+
+  <h3>Une quatrième voie, si aucune des trois ne vous convient</h3>
+
+  <p>Un <strong>usage de l'IA documenté et critiqué</strong> peut remplacer le bonus de recherche vectorielle, pour un point au lieu de deux : les prompts utilisés, ce que le modèle a produit, les corrections que vous y avez apportées, et les limites constatées. Le mot important est <em>critiqué</em>.</p>
+
+  <div class="box stop">
+    <span class="label">Ce qui ne rapporte aucun bonus</span>
+    <p>« On a utilisé ChatGPT pour écrire les agrégations » n'est pas un bonus, c'est un aveu si vous ne savez pas les expliquer. Le bonus récompense la maîtrise de l'outil, pas son usage.</p>
+    <p>Et une interface qui ne fait qu'afficher une page vide ne rapporte rien non plus : je dois pouvoir m'en servir pour interroger vos données.</p>
+  </div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="bareme">
+  <h2><span class="num">06</span>Le barème, point par point</h2>
+  <p class="sub">Vingt points, quatre rubriques, plus le bonus. Je ne cache rien : vous savez exactement où se gagnent les points.</p>
+
+  <table>
+    <thead><tr><th style="width:34%">Rubrique</th><th style="width:9%">Pts</th><th>Ce que je regarde</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>Fonctionnel</b></td><td class="pts">6</td>
+        <td>La base tourne sur Atlas et on s'y connecte. Le CRUD marche. Les agrégations produisent un résultat. La sauvegarde et la restauration fonctionnent. Le projet se lance en suivant le README, quel que soit son format.</td>
+      </tr>
+      <tr>
+        <td><b>Qualité technique</b></td><td class="pts">6</td>
+        <td><b>Modélisation (2)</b> : les décisions sont cohérentes avec les données et documentées. <b>Index (2)</b> : au moins trois, mesurés avant et après, servant des requêtes réelles. <b>Agrégations (2)</b> : au moins trois, pertinentes, avec visualisation.</td>
+      </tr>
+      <tr>
+        <td><b>Compréhension architecturale</b></td><td class="pts">4</td>
+        <td><b>Mini-défense du jeudi (2)</b> : schéma défendu, agrégation expliquée à la volée. <b>Justification écrite (2)</b> : la fiche de modélisation est remplie, chaque case « ce que ça coûte » est renseignée et crédible.</td>
+      </tr>
+      <tr>
+        <td><b>Soutenance vidéo</b></td><td class="pts">4</td>
+        <td><b>Format (1)</b> : durée, chaque membre présente à visage découvert, démonstration en enregistrement continu. <b>Clarté (1)</b>. <b>Démonstration (1)</b> : elle montre le produit qui tourne. <b>Question de défense (1)</b> : celle tirée au sort jeudi est traitée.</td>
+      </tr>
+      <tr class="total">
+        <td>Total</td><td class="pts">20</td><td></td>
+      </tr>
+      <tr>
+        <td><b>Bonus</b></td><td class="pts">+4</td>
+        <td>Recherche vectorielle (2), interface d'interrogation (1), projet structuré (1). Détaillés à la section précédente. Ils s'ajoutent dans la limite du barème.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="box note">
+    <span class="label">Lisez ce tableau à l'envers</span>
+    <p>Huit points sur vingt, la compréhension architecturale et la soutenance, ne dépendent pas de votre code. Ils dépendent de votre capacité à expliquer ce que vous avez fait et pourquoi. C'est la moitié de la note de qualité technique en plus. Un groupe qui code trois jours et prépare sa soutenance en une heure se prive de beaucoup.</p>
+  </div>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="video">
+  <h2><span class="num">07</span>La vidéo de soutenance</h2>
+  <p class="sub">Elle s'enregistre vendredi après-midi, en salle, pendant le créneau prévu. Le format est imposé, et le non-respect coûte directement des points.</p>
+
+  <table>
+    <thead><tr><th style="width:28%">Contrainte</th><th>Détail</th></tr></thead>
+    <tbody>
+      <tr><td><b>Durée</b></td><td>12 à 15 minutes maximum. Au-delà, j'arrête de regarder</td></tr>
+      <tr><td><b>Chaque membre</b></td><td>Présente sa partie, et ouvre son segment <b>à visage découvert</b>. Quatre personnes, quatre segments identifiables</td></tr>
+      <tr><td><b>La démonstration</b></td><td>Enregistrement d'écran <b>continu et non coupé</b>. Une démonstration montée en morceaux ne prouve rien, et se voit</td></tr>
+      <tr><td><b>La question de défense</b></td><td>Celle tirée au sort le jeudi, traitée explicitement. Annoncez-la à l'écran avant d'y répondre</td></tr>
+      <tr><td><b>Format du fichier</b></td><td>mp4, 720p suffisent. Si le fichier est trop lourd pour Teams, déposez un lien de partage</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box warn">
+    <span class="label">Le conseil qui fait la différence</span>
+    <p>Écrivez votre déroulé avant d'enregistrer, et répétez-le une fois. Les vidéos improvisées durent vingt minutes, se perdent dans les détails d'installation, et oublient la question de défense. Quinze minutes préparées valent mieux que trente improvisées, et se notent mieux.</p>
+  </div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="interdits">
+  <h2><span class="num">08</span>Ce qui vous coûte des points</h2>
+
+  <div class="box stop">
+    <span class="label">Des identifiants en clair dans le dépôt</span>
+    <p>Une chaîne de connexion Atlas avec son mot de passe, une clé d'API, un fichier d'environnement versionné. Je le sanctionne directement, et ce n'est pas une règle d'école : c'est la première chose que cherche un outil automatisé sur un dépôt public. Vérifiez votre <code>.gitignore</code> <b>et</b> votre historique de commits, parce qu'un fichier supprimé au dernier commit reste dans l'historique.</p>
+  </div>
+
+  <div class="box stop">
+    <span class="label">Du code que vous ne savez pas expliquer</span>
+    <p>L'IA est autorisée et encouragée. Mais tout élément que vous ne savez pas défendre à l'oral, je le considère comme non acquis, quelle que soit sa qualité apparente. Une agrégation de quinze étages que personne du groupe ne sait dérouler vaut moins qu'une agrégation de trois étages parfaitement maîtrisée.</p>
+  </div>
+
+  <div class="box stop">
+    <span class="label">Du travail que je ne peux pas faire tourner</span>
+    <p>Quel que soit le format que vous avez choisi, la règle est la même : <b>je dois pouvoir reproduire ce que vous montrez</b>.</p>
+    <p>Si vous rendez un notebook, il doit être exécuté, avec ses sorties visibles. Si vous rendez des modules Python, ils doivent s'exécuter en suivant le README, sans que j'aie à deviner un chemin ou une variable d'environnement. Dans les deux cas, un README dont les commandes échouent ou un chargement de données qui ne passe pas coûte des points sur le fonctionnel. Et ils se perdent bêtement : dix minutes de vérification sur une machine propre les auraient sauvés.</p>
+  </div>
+
+  <div class="box ok">
+    <span class="label">Ce qui rapporte, en revanche</span>
+    <p>Nommer une faiblesse de votre projet avant que je ne la trouve. Un groupe qui dit « notre modèle ne tiendrait pas si le volume était multiplié par cent, voici pourquoi et voici ce qu'on ferait » marque des points auprès de moi. Un groupe qui prétend que tout est parfait en perd, parce que rien ne l'est jamais.</p>
+  </div>
+</section>
+
+<footer>
+  <p><span class="sig">NEEKOCODE</span> pour IPSSI &nbsp;·&nbsp; Module « Conception et intégration d'une base de données NoSQL » &nbsp;·&nbsp; MIA4 27.2 &nbsp;·&nbsp; Projet final</p>
+  <p>Posez vos questions sur le canal Teams du module, et posez-les tôt. Une question posée mercredi obtient une réponse. La même posée vendredi à 14h obtient un haussement d'épaules.</p>
+</footer>
+
+</div>
+</body>
+</html>
