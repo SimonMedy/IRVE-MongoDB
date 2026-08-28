@@ -154,7 +154,6 @@ IRVE-MongoDB/
 - `docs/` : profiling et documentation technique.
 - `scripts/` : import, création/mesure des index et administration MongoDB.
 - `src/` : code Python réutilisable : configuration, connexion, CRUD et requêtes.
-- `ROADMAP.md` : suivi des livrables, répartition du travail et critères de validation.
 
 ---
 
@@ -175,10 +174,53 @@ COLLECTION_STATUTS=statuts_pdc
 
 ---
 
+## Import des données vers MongoDB Atlas
+
+### Prérequis
+
+- Python 3.12 ou version compatible ;
+- les dépendances de `requirements.txt` ;
+- un cluster MongoDB Atlas accessible ;
+- un fichier `.env.local` configuré à partir de `.env.example` ;
+- les CSV IRVE placés dans `data/`.
+
+Installer les dépendances :
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Le fichier statique doit être placé sous ce nom :
+
+```text
+data/consolidation_transport_irve_statique.csv
+```
+
+Pour le dynamique, le script détecte le premier fichier CSV dont le nom contient
+`dynamique`.
+
+Lancer l'import :
+
+```bash
+python scripts/import_data.py
+```
+
+Le script :
+
+- vérifie la connexion à Atlas avec `ping` ;
+- retire les doublons de `id_pdc_itinerance` dans le statique ;
+- construit un document par station avec un tableau `points_recharge` ;
+- ajoute un GeoJSON `localisation` uniquement quand les coordonnées sont validées par la source ;
+- calcule `departement` à partir du code INSEE lorsqu'il est disponible ;
+- conserve, dans le snapshot dynamique, la ligne la plus récente par PDC selon `horodatage` ;
+- charge les collections `stations` et `statuts_pdc` ;
+- affiche les volumes finaux pour contrôle.
+
+> L'import reconstruit les deux collections : leur contenu existant est supprimé avant réinsertion.
+
+---
+
 ## État du projet
 
-Le profiling et la justification initiale de la modélisation sont terminés.
-
-La suite du développement est suivie dans le
-[ROADMAP](ROADMAP.md), qui reprend les livrables obligatoires, les bonus envisagés,
-les validations à effectuer et la répartition du travail dans le groupe.
+Le profiling et la justification de la modélisation sont terminés.
+La connexion Atlas et le script d'import sont en cours de validation sur les données réelles.

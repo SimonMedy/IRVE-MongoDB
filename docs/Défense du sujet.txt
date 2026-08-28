@@ -24,21 +24,7 @@ comparer l’offre de recharge selon les départements ;
 comparer les opérateurs ;
 observer l’évolution du réseau dans le temps.
 
-Pour la première agrégation, comme les PDC sont embarqués dans le tableau points_recharge, on commence par $unwind afin de traiter chaque PDC individuellement.
 
-Ensuite, $group rassemble les PDC par département, $sum permet de compter le nombre de points de recharge et $avg permet de calculer leur puissance moyenne. Enfin, $sort classe les départements selon leur nombre de PDC.
-
-Le but est de comparer l’offre de recharge entre les différents territoires.
-
-Le champ département sera calculé ou enrichi pendant la préparation des données à partir des informations géographiques disponibles dans le dataset.
-
-Une deuxième agrégation suivra le même principe pour comparer les opérateurs. On pourra calculer le nombre de PDC de chaque opérateur ainsi que leur puissance moyenne, puis retenir par exemple les dix opérateurs ayant le plus de PDC afin d’obtenir une visualisation lisible.
-
-La troisième agrégation regroupera les stations selon leur année de mise en service afin d’observer l’évolution du déploiement du réseau au fil du temps et d’identifier d’éventuelles périodes d’accélération ou de ralentissement.
-
-À côté de ces agrégations, l’index 2dsphere aura un autre rôle : il servira spécifiquement aux recherches de proximité, par exemple pour trouver les stations situées à moins de 2 km d’une position.
-
-On a volontairement choisi des pipelines relativement simples qui répondent à de vraies questions métier et dont on maîtrise chaque étape, plutôt qu’un pipeline complexe qu’on ne saurait pas défendre correctement.
 
 
 Exemple aggrégation 1 :
