@@ -396,8 +396,10 @@ interaction.
   ([rapport de profiling](docs/profiling_irve.md)).
 - Import Atlas : **terminé et vérifié** — 48 040 stations et 100 838 statuts
   chargés sur le cluster.
+- Index : **terminés et mesurés** avant/après avec `explain()`
+  ([docs/indexes.md](docs/indexes.md)).
 - CRUD Python : **terminé**, démontré par `scripts/demo_crud.py`.
 - Agrégations et rapport analytique : **terminés**
   ([notebook](analysis/02_aggregations.ipynb), [pipelines](src/queries.py)).
 - Interface Streamlit : **terminée** ([`app/app.py`](app/app.py)).
-- Index et sauvegarde/restauration : en cours.
+- Sauvegarde/restauration : en cours (branche `feature/backup-restore`).
