@@ -134,6 +134,7 @@ IRVE-MongoDB/
 │   └── profiling_irve.md
 ├── scripts/
 │   ├── import_data.py
+│   ├── demo_crud.py
 │   ├── create_indexes.py
 │   ├── benchmark_indexes.py
 │   ├── backup.py
@@ -153,7 +154,7 @@ IRVE-MongoDB/
 - `app/` : interface d’interrogation Streamlit.
 - `data/` : instructions pour récupérer les fichiers IRVE ; les CSV ne sont pas versionnés.
 - `docs/` : profiling et documentation technique.
-- `scripts/` : import, création/mesure des index et administration MongoDB.
+- `scripts/` : import, démonstration CRUD, création/mesure des index et administration MongoDB.
 - `src/` : code Python réutilisable : configuration, connexion, CRUD et requêtes.
 
 ---
@@ -243,6 +244,53 @@ python scripts/benchmark_indexes.py
 
 ---
 
+## CRUD Python
+
+Les opérations de lecture/écriture sur la collection `stations` sont regroupées
+dans le module réutilisable [`src/crud.py`](src/crud.py).
+
+| Opération | Fonction | Comportement |
+|---|---|---|
+| Create | `creer_station(db, document)` | Valide le document puis l'insère ; le doublon d'`_id` est rejeté par MongoDB |
+| Read | `lire_station(db, id_station)` | Renvoie une station, lève `StationIntrouvable` si absente |
+| Read | `lister_stations(db, filtre, projection, limite, tri)` | Recherche filtrée avec projection et tri |
+| Read | `compter_stations(db, filtre)` | Compte les stations correspondant à un filtre |
+| Update | `modifier_station(db, id_station, modifications)` | `$set` des champs fournis, renvoie le document à jour |
+| Update | `ajouter_point_recharge(db, id_station, point)` | `$push` dans `points_recharge` et `$inc` de `nbre_pdc` |
+| Delete | `supprimer_station(db, id_station)` | Supprime la station et renvoie le document supprimé |
+
+### Gestion d'erreurs
+
+Les erreurs PyMongo sont converties en exceptions métier explicites, afin que
+l'appelant (script, notebook ou interface) n'ait pas à connaître les exceptions
+internes du pilote :
+
+```text
+ErreurCRUD                  erreur générique d'accès à MongoDB
+├── StationIntrouvable      identifiant absent de la collection
+├── StationDejaExistante    violation de la clé primaire `_id`
+└── DocumentInvalide        schéma minimal ou GeoJSON non conforme
+```
+
+La validation contrôle les champs obligatoires (`_id`, `nom`, `operateur`), le
+type du tableau `points_recharge` et la validité du GeoJSON `localisation`
+(type `Point`, couple `[longitude, latitude]` dans les bornes) : un point mal
+formé rendrait la station inexploitable par l'index `2dsphere`.
+
+> `ajouter_point_recharge` maintient `nbre_pdc` en même temps que le tableau.
+> C'est le coût concret de notre choix d'embarquement : le compteur étant
+> dénormalisé dans le document station, chaque écriture sur `points_recharge`
+> doit le resynchroniser.
+
+### Démonstration
+
+```bash
+python scripts/demo_crud.py
+```
+
+Le script enchaîne les quatre opérations sur une station de test
+(`FRDEMO PDEMO1`), déclenche volontairement quatre cas d'erreur, puis supprime
+la station. Il est rejouable et n'altère jamais les données IRVE réelles.
 ## Administration : Sauvegarde et Restauration
 
 Le projet intègre des scripts Python automatisant `mongodump` et `mongorestore` en utilisant exclusivement les variables d'environnement configurées (aucun mot de passe en clair).
@@ -283,4 +331,10 @@ Le script :
 
 ## État du projet
 
-Le profiling, la modélisation, l'import Atlas, les index mesurés et la procédure de sauvegarde/restauration sont validés sur les données réelles.
+- Profiling et justification de la modélisation : **terminés**.
+- Import Atlas : **terminé et vérifié** — 48 040 stations et 100 838 statuts chargés.
+- CRUD Python : **implémenté**, avec démonstration via `scripts/demo_crud.py`.
+- Index : **terminés et mesurés** avec `explain("executionStats")`.
+- Sauvegarde / restauration : **terminée et testée sur Atlas**.
+- Agrégations et visualisations : **en cours de finalisation**.
+- Interface Streamlit : **en cours de finalisation**.
