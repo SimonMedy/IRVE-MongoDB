@@ -124,7 +124,8 @@ les avantages et les coûts associés, est disponible dans le
 ```text
 IRVE-MongoDB/
 ├── analysis/
-│   └── 01_exploration_profiling.ipynb
+│   ├── 01_exploration_profiling.ipynb
+│   └── 02_aggregations.ipynb
 ├── app/
 │   └── app.py
 ├── data/
@@ -295,6 +296,62 @@ la station. Il est rejouable et n'altère jamais les données IRVE réelles.
 
 ---
 
+## Agrégations et rapport analytique
+
+Les pipelines sont regroupés dans le module réutilisable
+[`src/queries.py`](src/queries.py) : chaque fonction `pipeline_*` renvoie le
+pipeline **sans l'exécuter**, ce qui permet de l'afficher en soutenance, de le
+réutiliser dans `explain()` pour mesurer un index, et de le tester sans
+connexion. Les fonctions d'exécution correspondantes renvoient les résultats.
+
+Le rapport analytique exécuté se trouve dans
+[`analysis/02_aggregations.ipynb`](analysis/02_aggregations.ipynb).
+
+| Question métier | Pipeline | `$unwind` |
+|---|---|---|
+| Quels territoires sont les mieux équipés ? | `pipeline_offre_par_departement` | Non |
+| Quelle puissance moyenne selon les territoires ? | `pipeline_puissance_par_departement` | Oui |
+| Quels opérateurs dominent, et avec quelle qualité de service ? | `pipeline_top_operateurs` | Oui |
+| À quel rythme le réseau s'est-il déployé ? | `pipeline_evolution_annuelle` | Non |
+| Quel était l'état du parc dans le snapshot ? | `pipeline_etat_parc` | Non |
+
+### Pourquoi `$unwind` n'apparaît pas partout
+
+`$unwind` n'est utilisé que lorsque l'analyse porte réellement sur le point de
+recharge : compter les PDC un à un ou moyenner leur puissance impose de dérouler
+le tableau embarqué. Dès que la question porte sur la station, le compteur
+dénormalisé `nbre_pdc` permet de l'éviter et d'économiser le déroulage de plus
+de 165 000 sous-documents.
+
+C'est la contrepartie mesurable de notre choix d'embarquement : il coûte un
+`$unwind` sur les analyses granulaires, et rien sur les analyses par station.
+
+### Recherche géospatiale
+
+```python
+from src.queries import stations_proches
+
+stations_proches(db, longitude=2.3522, latitude=48.8566,
+                 rayon_metres=2000, puissance_min=50)
+```
+
+`stations_proches` utilise `$near` (tri par distance croissante), tandis que
+`pipeline_stations_proches_avec_distance` utilise `$geoNear`, qui restitue en
+plus la distance calculée. Les deux exigent l'index `2dsphere` sur
+`localisation`.
+
+### Exécution du notebook
+
+```bash
+python -m pip install -r requirements.txt
+jupyter lab analysis/02_aggregations.ipynb
+```
+
+> Le notebook doit être ré-exécuté contre le cluster Atlas avant la remise,
+> afin que les sorties visibles correspondent aux données réelles.
+
+---
+
 ## État du projet
 
 - Profiling et justification de la modélisation : **terminés**
@@ -302,4 +359,6 @@ la station. Il est rejouable et n'altère jamais les données IRVE réelles.
 - Import Atlas : **terminé et vérifié** — 48 040 stations et 100 838 statuts
   chargés sur le cluster.
 - CRUD Python : **terminé**, démontré par `scripts/demo_crud.py`.
-- Index, agrégations, sauvegarde/restauration et interface : en cours.
+- Agrégations et rapport analytique : **terminés**
+  ([notebook](analysis/02_aggregations.ipynb), [pipelines](src/queries.py)).
+- Index, sauvegarde/restauration et interface : en cours.
