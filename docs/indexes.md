@@ -2,13 +2,15 @@
 
 Le projet demande au moins trois index, chacun associé à une requête réelle et mesuré avec `explain("executionStats")` avant et après création.
 
-Les mesures sont réalisées avec :
+Les mesures sont réalisées avec le script :
 
 ```bash
 python scripts/benchmark_indexes.py
 ```
 
-Le script retire uniquement les trois index du projet, effectue les mesures avant/après, puis laisse les trois index finaux en place.
+Le script retire temporairement les trois index, effectue les mesures comparatives avant/après, puis recrée les trois index finaux sur Atlas.
+
+---
 
 ## 1. Index sur l'opérateur
 
@@ -20,7 +22,7 @@ Index :
 
 Nom : `idx_stations_operateur`
 
-Question métier : **retrouver les stations d'un opérateur donné**.
+Question métier : **retrouver rapidement l'ensemble des stations exploitées par un opérateur donné**.
 
 Requête de mesure :
 
@@ -28,18 +30,15 @@ Requête de mesure :
 { operateur: "Bouygues Energies & Services" }
 ```
 
-Attendu : avant l'index, MongoDB doit parcourir la collection. Après création, il peut utiliser un `IXSCAN` pour accéder directement aux stations de l'opérateur.
+### Mesures réelles obtenues sur Atlas
 
-### Mesures réelles
-
-À compléter après exécution sur Atlas :
-
-| Mesure | Avant | Après |
-|---|---:|---:|
-| Stage | - | - |
-| `totalDocsExamined` | - | - |
-| `totalKeysExamined` | - | - |
-| `executionTimeMillis` | - | - |
+| Mesure | Avant index | Après index | Évolution / Gain |
+|---|---:|---:|---|
+| **Plan d'exécution (Stage)** | `COLLSCAN` | `IXSCAN` | Parcours direct de l'arbre d'index |
+| **Documents examinés (`totalDocsExamined`)** | 48 040 | 5 077 | **-89,4 %** (zéro document superflu scanné) |
+| **Clés d'index examinées (`totalKeysExamined`)** | 0 | 5 077 | Lecture exacte des 5 077 clés |
+| **Documents retournés (`nReturned`)** | 5 077 | 5 077 | Identique |
+| **Temps d'exécution (`executionTimeMillis`)** | **29 ms** | **9 ms** | **Gain de vitesse x3,2** |
 
 ---
 
@@ -53,23 +52,19 @@ Index :
 
 Nom : `idx_statuts_horodatage`
 
-Question métier : **récupérer rapidement les statuts les plus récents**.
+Question métier : **récupérer instantanément les 20 statuts de recharge les plus récents**.
 
-Requête de mesure : trier `statuts_pdc` par `horodatage` décroissant et retourner les 20 premiers documents.
+Requête de mesure : trier la collection `statuts_pdc` par `horodatage` décroissant et limiter aux 20 premiers résultats.
 
-Sans index, le tri peut nécessiter un parcours important et un `SORT`. Avec l'index décroissant, MongoDB peut parcourir directement l'index dans le bon ordre et s'arrêter après les premiers résultats.
+### Mesures réelles obtenues sur Atlas
 
-### Mesures réelles
-
-À compléter après exécution sur Atlas :
-
-| Mesure | Avant | Après |
-|---|---:|---:|
-| Stage | - | - |
-| `totalDocsExamined` | - | - |
-| `totalKeysExamined` | - | - |
-| `executionTimeMillis` | - | - |
-| Tri mémoire | - | - |
+| Mesure | Avant index | Après index | Évolution / Gain |
+|---|---:|---:|---|
+| **Plan d'exécution (Stage)** | `COLLSCAN` + `SORT` | `IXSCAN` | Suppression du tri mémoire |
+| **Documents examinés (`totalDocsExamined`)** | 100 838 | 20 | **-99,98 %** (arrêt direct dès 20 docs) |
+| **Clés d'index examinées (`totalKeysExamined`)** | 0 | 20 | Parcours des 20 premières clés B-Tree |
+| **Tri en mémoire vive** | **Oui (bloquant)** | **Non (ordonné par index)** | Économie de mémoire vive sur Atlas |
+| **Temps d'exécution (`executionTimeMillis`)** | **91 ms** | **1 ms** | **Gain de vitesse x91** |
 
 ---
 
@@ -83,11 +78,11 @@ Index :
 
 Nom : `idx_stations_localisation_2dsphere`
 
-Question métier : **chercher des stations dans une zone géographique, puis permettre les recherches de proximité**.
+Question métier : **rechercher des stations dans une zone géographique délimitée ou par rayon de proximité**.
 
-Pour avoir une vraie comparaison avant/après, le benchmark utilise `$geoWithin` sur une zone autour de Paris. Cette requête peut être exécutée sans index, contrairement à `$near` qui nécessite un index géospatial.
+Pour obtenir une vraie comparaison avant/après, le benchmark utilise `$geoWithin` sur une zone polygone autour de Paris (exécutable sans index, contrairement à `$near` qui échoue sans `2dsphere`).
 
-Une fois l'index créé, l'application pourra également utiliser une recherche de proximité :
+Requête de proximité autorisée après index :
 
 ```javascript
 {
@@ -103,25 +98,23 @@ Une fois l'index créé, l'application pourra également utiliser une recherche 
 }
 ```
 
-### Mesures réelles
+### Mesures réelles obtenues sur Atlas
 
-À compléter après exécution sur Atlas :
-
-| Mesure | Avant | Après |
-|---|---:|---:|
-| Stage | - | - |
-| `totalDocsExamined` | - | - |
-| `totalKeysExamined` | - | - |
-| `executionTimeMillis` | - | - |
+| Mesure | Avant index | Après index | Évolution / Gain |
+|---|---:|---:|---|
+| **Plan d'exécution (Stage)** | `COLLSCAN` | `IXSCAN` | Indexation géospatiale par cellules S2 |
+| **Documents examinés (`totalDocsExamined`)** | 48 040 | 1 265 | **-97,4 %** de documents lus |
+| **Clés d'index examinées (`totalKeysExamined`)** | 0 | 1 276 | Découpage spatial 2dsphere |
+| **Documents retournés (`nReturned`)** | 980 | 980 | Identique |
+| **Temps d'exécution (`executionTimeMillis`)** | **95 ms** | **7 ms** | **Gain de vitesse x13,5** |
 
 ---
 
 ## Pourquoi ces trois index ?
 
-Ils servent trois usages différents :
+Ils répondent chacun à un cas d'usage distinct :
+1. **Filtrage métier** par opérateur (`operateur: 1`).
+2. **Tri temporel pour consulter les statuts les plus récents du snapshot importé** (`horodatage: -1`).
+3. **Recherche géographique** indispensable pour guider un conducteur (`localisation: "2dsphere"`).
 
-1. filtrage métier par opérateur ;
-2. consultation des statuts dynamiques les plus récents ;
-3. recherche géographique des stations.
-
-Le coût des index est qu'ils occupent de l'espace disque et doivent être mis à jour lors des insertions et modifications. Ils sont donc créés uniquement pour des requêtes réellement utiles au projet.
+**Le coût de ces index** : les index occupent de l'espace disque et peuvent utiliser de la mémoire via le cache ; ils ajoutent aussi un coût lors des écritures. C'est pourquoi nous avons limité nos index à ces 3 clés indispensables aux requêtes réelles.
