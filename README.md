@@ -130,6 +130,7 @@ IRVE-MongoDB/
 ├── data/
 │   └── README.md
 ├── docs/
+│   ├── indexes.md
 │   └── profiling_irve.md
 ├── scripts/
 │   ├── import_data.py
@@ -217,6 +218,29 @@ Le script :
 - affiche les volumes finaux pour contrôle.
 
 > L'import reconstruit les deux collections : leur contenu existant est supprimé avant réinsertion.
+
+---
+
+---
+
+## Index et performances
+
+Trois index ont été mis en place et mesurés avec `explain("executionStats")` avant et après création.
+
+| Index | Usage | Avant | Après |
+|---|---|---|---|
+| `operateur: 1` | Stations d'un opérateur | `COLLSCAN`, 48 040 docs, 29 ms | `IXSCAN`, 5 077 docs, 9 ms |
+| `horodatage: -1` | 20 statuts les plus récents | `COLLSCAN + SORT`, 100 838 docs, 91 ms | `IXSCAN`, 20 docs, 1 ms |
+| `localisation: "2dsphere"` | Recherche géographique | `COLLSCAN`, 48 040 docs, 95 ms | `IXSCAN`, 1 265 docs, 7 ms |
+
+Les détails des requêtes et les mesures complètes sont disponibles dans
+[docs/indexes.md](docs/indexes.md).
+
+Le benchmark peut être reproduit avec :
+
+```bash
+python scripts/benchmark_indexes.py
+```
 
 ---
 
