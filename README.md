@@ -169,6 +169,7 @@ MONGODB_URI=mongodb+srv://<USER>:<PASSWORD>@<CLUSTER>.mongodb.net/?retryWrites=t
 DB_NAME=irve
 COLLECTION_STATIONS=stations
 COLLECTION_STATUTS=statuts_pdc
+RESTORE_DB_NAME=irve_restore_demo
 ```
 
 > `.env.local` ne doit jamais être versionné. Aucun identifiant, mot de passe ou token ne doit apparaître dans le dépôt ou son historique Git.
@@ -221,8 +222,6 @@ Le script :
 
 ---
 
----
-
 ## Index et performances
 
 Trois index ont été mis en place et mesurés avec `explain("executionStats")` avant et après création.
@@ -244,7 +243,44 @@ python scripts/benchmark_indexes.py
 
 ---
 
+## Administration : Sauvegarde et Restauration
+
+Le projet intègre des scripts Python automatisant `mongodump` et `mongorestore` en utilisant exclusivement les variables d'environnement configurées (aucun mot de passe en clair).
+
+Prérequis : installer **MongoDB Database Tools** et vérifier les commandes :
+
+```bash
+mongodump --version
+mongorestore --version
+```
+
+La procédure détaillée est disponible dans [docs/backup_restore.md](docs/backup_restore.md).
+
+### 1. Sauvegarde (`mongodump`)
+
+Créer un dump BSON horodaté de la base `irve` dans le dossier local `backups/` :
+
+```bash
+python scripts/backup.py
+```
+
+Le script génère automatiquement un dossier horodaté (ex : `backups/20260828_114322/irve/`) contenant les fichiers `.bson` et `.metadata.json` des collections `stations` et `statuts_pdc`.
+
+### 2. Restauration (`mongorestore`)
+
+Restaurer la sauvegarde la plus récente vers une base de démonstration isolée (`irve_restore_demo`) pour valider la procédure sans écraser la base principale `irve` :
+
+```bash
+python scripts/restore.py
+```
+
+Le script :
+- détecte la dernière sauvegarde disponible dans `backups/` ;
+- supprime avec `--drop` les collections cibles avant leur restauration ;
+- restaure l'ensemble des 148 878 documents et reconstruit automatiquement tous les index associés.
+
+---
+
 ## État du projet
 
-Le profiling et la justification de la modélisation sont terminés.
-La connexion Atlas et le script d'import sont en cours de validation sur les données réelles.
+Le profiling, la modélisation, l'import Atlas, les index mesurés et la procédure de sauvegarde/restauration sont validés sur les données réelles.
