@@ -352,6 +352,44 @@ jupyter lab analysis/02_aggregations.ipynb
 
 ---
 
+## Interface d'interrogation (Streamlit)
+
+Interface permettant d'interroger la base sans passer par un terminal.
+
+```bash
+streamlit run app/app.py
+```
+
+L'application s'ouvre sur `http://localhost:8501` et comporte trois onglets :
+
+| Onglet | Ce qu'il permet | Code appelé |
+|---|---|---|
+| **Recherche par proximité** | Choisir une ville ou des coordonnées libres, régler le rayon, la puissance minimale et le type de prise ; résultats sur carte, tableau et export CSV | `pipeline_stations_proches_avec_distance` |
+| **Analyses** | Consulter les agrégations par territoire, par opérateur et dans le temps | `offre_par_departement`, `top_operateurs`, `evolution_annuelle` |
+| **Fiche station** | Lire une station par son identifiant d'itinérance et détailler ses PDC | `lire_station` du module CRUD |
+
+### Choix techniques
+
+Les filtres de puissance et de type de prise sont placés dans la clé `query` de
+`$geoNear`, et non dans un `$match` ultérieur : `$geoNear` doit rester le
+premier étage du pipeline, et cette forme laisse MongoDB appliquer le filtre
+en s'appuyant sur l'index `2dsphere` plutôt que de rapatrier puis écarter des
+documents.
+
+L'interface ne réimplémente aucune requête : elle consomme `src/queries.py` et
+`src/crud.py`, les mêmes modules que le notebook et les scripts. Une correction
+de pipeline profite donc aux trois.
+
+La connexion est mise en cache avec `@st.cache_resource` et les résultats avec
+`@st.cache_data(ttl=300)`, afin de ne pas rouvrir une connexion Atlas à chaque
+interaction.
+
+> L'onglet de recherche exige l'index `2dsphere` sur `localisation`. Sans lui,
+> `$geoNear` échoue et l'interface affiche un message invitant à lancer
+> `scripts/create_indexes.py`.
+
+---
+
 ## État du projet
 
 - Profiling et justification de la modélisation : **terminés**
@@ -361,4 +399,5 @@ jupyter lab analysis/02_aggregations.ipynb
 - CRUD Python : **terminé**, démontré par `scripts/demo_crud.py`.
 - Agrégations et rapport analytique : **terminés**
   ([notebook](analysis/02_aggregations.ipynb), [pipelines](src/queries.py)).
-- Index, sauvegarde/restauration et interface : en cours.
+- Interface Streamlit : **terminée** ([`app/app.py`](app/app.py)).
+- Index et sauvegarde/restauration : en cours.
