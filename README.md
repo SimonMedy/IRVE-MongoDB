@@ -221,8 +221,6 @@ Le script :
 
 ---
 
----
-
 ## Index et performances
 
 Trois index ont été mis en place et mesurés avec `explain("executionStats")` avant et après création.
@@ -241,6 +239,35 @@ Le benchmark peut être reproduit avec :
 ```bash
 python scripts/benchmark_indexes.py
 ```
+
+---
+
+## Administration : Sauvegarde et Restauration
+
+Le projet intègre des scripts Python automatisant `mongodump` et `mongorestore` en utilisant exclusivement les variables d'environnement configurées (aucun mot de passe en clair).
+
+### 1. Sauvegarde (`mongodump`)
+
+Créer un dump BSON horodaté de la base `irve` dans le dossier local `backups/` :
+
+```bash
+python scripts/backup.py
+```
+
+Le script génère automatiquement un dossier horodaté (ex : `backups/20260828_114322/irve/`) contenant les fichiers `.bson` et `.metadata.json` des collections `stations` et `statuts_pdc`.
+
+### 2. Restauration (`mongorestore`)
+
+Restaurer la sauvegarde la plus récente vers une base de démonstration isolée (`irve_restore_demo`) pour valider la procédure sans écraser la production :
+
+```bash
+python scripts/restore.py
+```
+
+Le script :
+- détecte la dernière sauvegarde disponible dans `backups/` ;
+- applique `--drop` sur la base cible `irve_restore_demo` ;
+- restaure l'ensemble des 148 878 documents et reconstruit automatiquement tous les index associés.
 
 ---
 

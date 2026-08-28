@@ -61,14 +61,15 @@ def main():
             f"{DB_NAME}.*",
             "--nsTo",
             f"{RESTORE_DB_NAME}.*",
-            str(source),
+            "--dir",
+            str(sauvegarde),
         ]
 
         print(f"Sauvegarde utilisée : {sauvegarde.name}")
         print(f"Restauration vers la base de démonstration '{RESTORE_DB_NAME}'...")
         subprocess.run(commande, check=True)
 
-        print("Restauration terminée.")
+        print("Restauration terminée avec succès.")
         print(f"Base restaurée : {RESTORE_DB_NAME}")
 
     except (RuntimeError, OSError, subprocess.CalledProcessError) as erreur:
