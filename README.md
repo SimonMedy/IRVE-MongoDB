@@ -171,6 +171,7 @@ MONGODB_URI=mongodb+srv://<USER>:<PASSWORD>@<CLUSTER>.mongodb.net/?retryWrites=t
 DB_NAME=irve
 COLLECTION_STATIONS=stations
 COLLECTION_STATUTS=statuts_pdc
+RESTORE_DB_NAME=irve_restore_demo
 ```
 
 > `.env.local` ne doit jamais être versionné. Aucun identifiant, mot de passe ou token ne doit apparaître dans le dépôt ou son historique Git.
@@ -220,8 +221,6 @@ Le script :
 - affiche les volumes finaux pour contrôle.
 
 > L'import reconstruit les deux collections : leur contenu existant est supprimé avant réinsertion.
-
----
 
 ---
 
@@ -293,6 +292,41 @@ python scripts/demo_crud.py
 Le script enchaîne les quatre opérations sur une station de test
 (`FRDEMO PDEMO1`), déclenche volontairement quatre cas d'erreur, puis supprime
 la station. Il est rejouable et n'altère jamais les données IRVE réelles.
+## Administration : Sauvegarde et Restauration
+
+Le projet intègre des scripts Python automatisant `mongodump` et `mongorestore` en utilisant exclusivement les variables d'environnement configurées (aucun mot de passe en clair).
+
+Prérequis : installer **MongoDB Database Tools** et vérifier les commandes :
+
+```bash
+mongodump --version
+mongorestore --version
+```
+
+La procédure détaillée est disponible dans [docs/backup_restore.md](docs/backup_restore.md).
+
+### 1. Sauvegarde (`mongodump`)
+
+Créer un dump BSON horodaté de la base `irve` dans le dossier local `backups/` :
+
+```bash
+python scripts/backup.py
+```
+
+Le script génère automatiquement un dossier horodaté (ex : `backups/20260828_114322/irve/`) contenant les fichiers `.bson` et `.metadata.json` des collections `stations` et `statuts_pdc`.
+
+### 2. Restauration (`mongorestore`)
+
+Restaurer la sauvegarde la plus récente vers une base de démonstration isolée (`irve_restore_demo`) pour valider la procédure sans écraser la base principale `irve` :
+
+```bash
+python scripts/restore.py
+```
+
+Le script :
+- détecte la dernière sauvegarde disponible dans `backups/` ;
+- supprime avec `--drop` les collections cibles avant leur restauration ;
+- restaure l'ensemble des 148 878 documents et reconstruit automatiquement tous les index associés.
 
 ---
 
@@ -403,3 +437,11 @@ interaction.
   ([notebook](analysis/02_aggregations.ipynb), [pipelines](src/queries.py)).
 - Interface Streamlit : **terminée** ([`app/app.py`](app/app.py)).
 - Sauvegarde/restauration : en cours (branche `feature/backup-restore`).
+- Index, sauvegarde/restauration et interface : en cours.
+- Profiling et justification de la modélisation : **terminés**.
+- Import Atlas : **terminé et vérifié** — 48 040 stations et 100 838 statuts chargés.
+- CRUD Python : **implémenté**, avec démonstration via `scripts/demo_crud.py`.
+- Index : **terminés et mesurés** avec `explain("executionStats")`.
+- Sauvegarde / restauration : **terminée et testée sur Atlas**.
+- Agrégations et visualisations : **en cours de finalisation**.
+- Interface Streamlit : **en cours de finalisation**.

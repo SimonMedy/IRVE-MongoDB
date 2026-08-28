@@ -1,33 +1,39 @@
-# Environnement & Secrets
+# Secrets / configuration locale
 .env
 .env.local
-*.env
+.env.*
+!.env.example
 
-# Python & Virtualenv
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
+*.pyo
+*.pyd
+
+# Environnements virtuels
 .venv/
-env/
 venv/
-ENV/
+env/
 
-# Data volumineuse (à télécharger via data.gouv.fr)
-data/*.csv
-data/*.zip
-data/*.jsonl
-data/*.gz
-
-# Jupyter Checkpoints
+# Jupyter
 .ipynb_checkpoints/
-*/.ipynb_checkpoints/
 
-# IDE & OS
+# Données volumineuses
+*.csv
+*.tsv
+*.parquet
+data/*.json
+!data/README.md
+
+# Sauvegardes MongoDB locales
+backups/
+
+# IDE / OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 
-# Autre
-AGENTS.md
+# Documentation de travail locale
 ROADMAP.md
+AGENTS.md
