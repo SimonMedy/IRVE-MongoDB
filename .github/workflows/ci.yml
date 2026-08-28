@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "feature/**"
+      - "chore/**"
   pull_request:
     branches:
       - main
@@ -28,7 +29,12 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Compile Python files
-        run: python -m compileall -q src scripts
+        run: python -m compileall -q src scripts app
 
-      - name: Check imports
-        run: python -c "import pandas, pymongo, dotenv; print('Imports OK')"
+      - name: Check dependencies
+        run: >-
+          python -c "import pandas, pymongo, dotenv, streamlit, matplotlib; print('Dependencies OK')"
+
+      - name: Check project modules
+        run: >-
+          python -c "import src.config, src.database, src.crud, src.queries; print('Project imports OK')"
